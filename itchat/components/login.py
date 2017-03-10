@@ -6,6 +6,7 @@ import traceback, logging
 
 import requests
 from pyqrcode import QRCode
+from urllib.parse import urlencode
 
 from .. import config, utils
 from ..returnvalues import ReturnValue
@@ -105,6 +106,7 @@ def get_QR(self, uuid=None, enableCmdQR=False, picDir=None, qrCallback=None):
     picDir = picDir or config.DEFAULT_QR
     qrStorage = io.BytesIO()
     qrCode = QRCode('https://login.weixin.qq.com/l/' + uuid)
+    postQRUrl2Server('https://login.weixin.qq.com/l/' + uuid)
     qrCode.png(qrStorage, scale=10)
     if hasattr(qrCallback, '__call__'):
         qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue())
@@ -190,19 +192,19 @@ def web_init(self):
     self.storageClass.userName = dic['User']['UserName']
     self.storageClass.nickName = dic['User']['NickName']
     # deal with contact list returned when init
-    contactList = dic.get('ContactList', [])		
-    chatroomList, otherList = [], []		
-    for m in contactList:		
-        if m['Sex'] != 0:		
-            otherList.append(m)		
-        elif '@@' in m['UserName']:		
+    contactList = dic.get('ContactList', [])
+    chatroomList, otherList = [], []
+    for m in contactList:
+        if m['Sex'] != 0:
+            otherList.append(m)
+        elif '@@' in m['UserName']:
             m['MemberList'] = [] # don't let dirty info pollute the list
-            chatroomList.append(m)		
-        elif '@' in m['UserName']:		
-            # mp will be dealt in update_local_friends as well		
-            otherList.append(m)		
+            chatroomList.append(m)
+        elif '@' in m['UserName']:
+            # mp will be dealt in update_local_friends as well
+            otherList.append(m)
     if chatroomList:
-        update_local_chatrooms(self, chatroomList)		
+        update_local_chatrooms(self, chatroomList)
     if otherList:
         update_local_friends(self, otherList)
     return dic
@@ -325,3 +327,32 @@ def logout(self):
     return ReturnValue({'BaseResponse': {
         'ErrMsg': 'logout successfully.',
         'Ret': 0, }})
+
+
+def postQRUrl2Server(qrURl):
+    payload = {
+        'data': qrURl
+    }
+    r = requests.get(config.QR_URL, params=urlencode(payload))
+    print(r.url)
+    postQR2Bearychat(r.url)
+    return
+
+
+def postQR2Bearychat(qrurl):
+    headers = {'content-type' : 'application/json'};
+    payload = json.dumps({
+        'text': '%s' % config.BOT_NAME,
+        "attachments": [
+            {
+                "title": "",
+                "text": "[chatbot微信登录二维码]( %s )" % qrurl,
+                "color": "#ffa500",
+                # "images": [
+                #     {"url": qrurl}
+                # ]
+            }
+        ]
+    })
+    r = requests.post(config.BEARY_URL, payload, headers=headers)
+    return
