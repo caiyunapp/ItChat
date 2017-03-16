@@ -44,6 +44,7 @@ def configured_reply(self):
     try:
         msg = self.msgList.get(timeout=1)
     except Queue.Empty:
+        print("Queue.Empty")
         pass
     else:
         if msg['FromUserName'] == self.storageClass.userName:
