@@ -231,15 +231,15 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
     postSuccessInfo2Bearychat(self.storageClass.nickName, len(self.memberList))
     def maintain_loop():
         retryCount = 0
-        last = datetime.now().timestamp()
+        last = time.time()
         while self.alive:
             try:
                 i = sync_check(self)
 
-                now = datetime.now().timestamp()
-                if (now-last >= 600):
-                    sendAliveInfo(self)
+                now = time.time()
+                if (now-last >= 1800):
                     last = now
+                    sendAliveInfo(self)
 
                 if i is None:
                     self.alive = False
