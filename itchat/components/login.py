@@ -7,7 +7,7 @@ import traceback, logging
 import requests
 from pyqrcode import QRCode
 from urllib.parse import urlencode
-
+from datetime import datetime
 from .. import config, utils
 from ..returnvalues import ReturnValue
 from .contact import update_local_chatrooms, update_local_friends
@@ -231,15 +231,15 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
     postSuccessInfo2Bearychat(self.storageClass.nickName, len(self.memberList))
     def maintain_loop():
         retryCount = 0
-        aliveCount = 0
+        last = datetime.now().timestamp()
         while self.alive:
             try:
                 i = sync_check(self)
 
-                aliveCount += 1
-                if (aliveCount >= self.sendAliveCount):
+                now = datetime.now().timestamp()
+                if (now-last >= 600):
                     sendAliveInfo(self)
-                    aliveCount = 0
+                    last = now
 
                 if i is None:
                     self.alive = False
