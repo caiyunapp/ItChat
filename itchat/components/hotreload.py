@@ -31,7 +31,7 @@ def dump_login_status(self, fileDir=None):
         'storage'   : self.storageClass.dumps()}
     with open(fileDir, 'wb') as f:
         pickle.dump(status, f)
-    logger.debug('Dump login status for hot reload successfully.')
+    logger.info('Dump login status for hot reload successfully.')
 
 def load_login_status(self, fileDir,
         loginCallback=None, exitCallback=None):
@@ -58,7 +58,7 @@ def load_login_status(self, fileDir,
     if (msgList or contactList) is None:
         self.logout()
         load_last_login_status(self.s, j['cookies'])
-        logger.debug('server refused, loading login status failed.')
+        logger.warning('server refused, loading login status failed.')
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'server refused, loading login status failed.',
             'Ret': -1003, }})
@@ -108,7 +108,7 @@ def dump_login_status_redis(self, fileDir=None):
     pkls = pickle.dumps(status)
     redis_client = redis.StrictRedis.from_url(config.REDIS_URL)
     redis_client.set(fileDir, pkls)
-    logger.debug('Dump login status for hot reload successfully.')
+    logger.info('Dump login status for hot reload successfully.')
 
 
 def load_login_status_redis(self, fileDir,
@@ -118,7 +118,7 @@ def load_login_status_redis(self, fileDir,
         pkls = redis_client.get(fileDir)
         j = pickle.loads(pkls)
     except Exception as e:
-        logger.debug('No such file, loading login status failed.')
+        logger.warning('No such file, loading login status failed.')
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'No such file, loading login status failed.',
             'Ret': -1002, }})
@@ -137,7 +137,7 @@ def load_login_status_redis(self, fileDir,
     if (msgList or contactList) is None:
         self.logout()
         load_last_login_status(self.s, j['cookies'])
-        logger.debug('server refused, loading login status failed.')
+        logger.warning('server refused, loading login status failed.')
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'server refused, loading login status failed.',
             'Ret': -1003, }})
@@ -152,7 +152,7 @@ def load_login_status_redis(self, fileDir,
             msgList = produce_msg(self, msgList)
             for msg in msgList: self.msgList.put(msg)
         self.start_receiving(exitCallback)
-        logger.debug('loading login status succeeded.')
+        logger.info('loading login status succeeded.')
         if hasattr(loginCallback, '__call__'):
             loginCallback()
         return ReturnValue({'BaseResponse': {

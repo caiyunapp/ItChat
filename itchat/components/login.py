@@ -73,6 +73,7 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
         if os.path.exists(picDir or config.DEFAULT_QR):
             os.remove(picDir or config.DEFAULT_QR)
         logger.info('Login successfully as %s' % self.storageClass.nickName)
+
     self.start_receiving(exitCallback)
     self.isLogging = False
 
@@ -226,11 +227,20 @@ def show_mobile_login(self):
 
 def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
     self.alive = True
+    logger.info(self.storageClass.nickName + " start receiving. ")
+    postSuccessInfo2Bearychat(self.storageClass.nickName, len(self.memberList))
     def maintain_loop():
         retryCount = 0
+        aliveCount = 0
         while self.alive:
             try:
                 i = sync_check(self)
+
+                aliveCount += 1
+                if (aliveCount >= self.sendAliveCount):
+                    sendAliveInfo(self)
+                    aliveCount = 0
+
                 if i is None:
                     self.alive = False
                 elif i == '0':
@@ -350,6 +360,44 @@ def postQR2Bearychat(qrurl):
                 "title": "",
                 "text": "[chatbot微信登录二维码]( %s )" % qrurl,
                 "color": "#ffa500",
+                # "images": [
+                #     {"url": qrurl}
+                # ]
+            }
+        ]
+    })
+    r = requests.post(config.BEARY_URL, payload, headers=headers)
+    return
+
+def postSuccessInfo2Bearychat(name, num):
+    headers = {'content-type' : 'application/json'};
+    payload = json.dumps({
+        'text': '%s 登录成功，现在共有 %s 位联系人' % (name, num), 
+        "attachments": [
+            {
+                # "title": "登录成功",
+                # "text": "%s" % name,
+                # "color": "#ffa500",
+                # "images": [
+                #     {"url": qrurl}
+                # ]
+            }
+        ]
+    })
+    r = requests.post(config.BEARY_URL, payload, headers=headers)
+    return
+
+def sendAliveInfo(self):
+    msg = '%s 保持服务！目前共有 %s 位联系人，%s 个聊天会话' % (self.storageClass.nickName, len(self.memberList), len(self.chatroomList))
+    self.send(msg, "filehelper")
+    headers = {'content-type' : 'application/json'}
+    payload = json.dumps({
+        'text': '%s ' % msg,
+        "attachments": [
+            {
+                # "title": "登录成功",
+                # "text": "%s" % info,
+                # "color": "#ffa500",
                 # "images": [
                 #     {"url": qrurl}
                 # ]
