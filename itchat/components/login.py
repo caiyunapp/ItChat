@@ -244,6 +244,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                 if i is None:
                     self.alive = False
                 elif i == '0':
+                    time.sleep(0.5)
                     pass
                 else:
                     msgList, contactList = self.get_msg()
@@ -315,7 +316,9 @@ def get_msg(self):
     r = self.s.post(url, data=json.dumps(data), headers=headers)
     dic = json.loads(r.content.decode('utf-8', 'replace'))
     logger.debug(dic['BaseResponse'])
-    if dic['BaseResponse']['Ret'] != 0: return None, None
+    if dic['BaseResponse']['Ret'] != 0: 
+        raise Exception(config.BOT_NAME + " GetMsgError", r)
+        return None, None
     self.loginInfo['SyncKey'] = dic['SyncCheckKey']
     self.loginInfo['synckey'] = '|'.join(['%s_%s' % (item['Key'], item['Val'])
         for item in dic['SyncCheckKey']['List']])
@@ -372,7 +375,7 @@ def postQR2Bearychat(qrurl):
 def postSuccessInfo2Bearychat(name, num):
     headers = {'content-type' : 'application/json'};
     payload = json.dumps({
-        'text': '%s 登录成功，现在共有 %s 位联系人' % (name, num), 
+        'text': '%s 登录成功，开始接收消息！现在共有 %s 位联系人' % (name, num), 
         "attachments": [
             {
                 # "title": "登录成功",
