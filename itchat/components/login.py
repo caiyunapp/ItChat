@@ -9,6 +9,7 @@ from pyqrcode import QRCode
 
 from .. import config, utils
 from ..returnvalues import ReturnValue
+from ..storage.templates import wrap_user_dict
 from .contact import update_local_chatrooms, update_local_friends
 from .messages import produce_msg
 
@@ -182,7 +183,7 @@ def web_init(self):
     # deal with login info
     utils.emoji_formatter(dic['User'], 'NickName')
     self.loginInfo['InviteStartCount'] = int(dic['InviteStartCount'])
-    self.loginInfo['User'] = utils.struct_friend_info(dic['User'])
+    self.loginInfo['User'] = wrap_user_dict(utils.struct_friend_info(dic['User']))
     self.memberList.append(self.loginInfo['User'])
     self.loginInfo['SyncKey'] = dic['SyncKey']
     self.loginInfo['synckey'] = '|'.join(['%s_%s' % (item['Key'], item['Val'])
@@ -247,6 +248,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                             else:
                                 otherList.append(contact)
                         chatroomMsg = update_local_chatrooms(self, chatroomList)
+                        chatroomMsg['User'] = self.loginInfo['User']
                         self.msgList.put(chatroomMsg)
                         update_local_friends(self, otherList)
                 retryCount = 0
@@ -280,7 +282,7 @@ def sync_check(self):
         'synckey'  : self.loginInfo['synckey'],
         '_'        : int(time.time() * 1000),}
     headers = { 'User-Agent' : config.USER_AGENT }
-    r = self.s.get(url, params=params, headers=headers)
+    r = self.s.get(url, params=params, headers=headers, timeout=config.TIMEOUT)
     regx = r'window.synccheck={retcode:"(\d+)",selector:"(\d+)"}'
     pm = re.search(regx, r.text)
     if pm is None or pm.group(1) != '0':
@@ -299,7 +301,7 @@ def get_msg(self):
     headers = {
         'ContentType': 'application/json; charset=UTF-8',
         'User-Agent' : config.USER_AGENT }
-    r = self.s.post(url, data=json.dumps(data), headers=headers)
+    r = self.s.post(url, data=json.dumps(data), headers=headers, timeout=config.TIMEOUT)
     dic = json.loads(r.content.decode('utf-8', 'replace'))
     if dic['BaseResponse']['Ret'] != 0: return None, None
     self.loginInfo['SyncKey'] = dic['SyncCheckKey']

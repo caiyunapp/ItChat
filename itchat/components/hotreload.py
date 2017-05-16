@@ -5,6 +5,7 @@ import requests
 
 from ..config import VERSION
 from ..returnvalues import ReturnValue
+from ..storage import templates
 from .contact import update_local_chatrooms, update_local_friends
 from .messages import produce_msg
 
@@ -43,16 +44,21 @@ def load_login_status(self, fileDir,
             'Ret': -1002, }})
 
     if j.get('version', '') != VERSION:
-        logger.debug(('you have updated itchat from %s to %s, ' + 
+        logger.debug(('you have updated itchat from %s to %s, ' +
             'so cached status is ignored') % (
             j.get('version', 'old version'), VERSION))
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'cached status ignored because of version',
             'Ret': -1005, }})
     self.loginInfo = j['loginInfo']
+    self.loginInfo['User'] = templates.User(self.loginInfo['User'])
+    self.loginInfo['User'].core = self
     self.s.cookies = requests.utils.cookiejar_from_dict(j['cookies'])
     self.storageClass.loads(j['storage'])
-    msgList, contactList = self.get_msg()
+    try:
+        msgList, contactList = self.get_msg()
+    except:
+        msgList = contactList = None
     if (msgList or contactList) is None:
         self.logout()
         load_last_login_status(self.s, j['cookies'])
