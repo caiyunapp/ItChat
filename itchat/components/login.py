@@ -4,16 +4,17 @@ import json, xml.dom.minidom
 import copy, pickle, random
 import traceback, logging
 
-import requests
+import requests, datetime
 from pyqrcode import QRCode
 from urllib.parse import urlencode
-from datetime import datetime
 from .. import config, utils
 from ..returnvalues import ReturnValue
+from ..storage.templates import wrap_user_dict
 from .contact import update_local_chatrooms, update_local_friends
 from .messages import produce_msg
 
 logger = logging.getLogger('itchat')
+loginTime = int(time.time())
 
 def load_login(core):
     core.login             = login
@@ -185,7 +186,7 @@ def web_init(self):
     # deal with login info
     utils.emoji_formatter(dic['User'], 'NickName')
     self.loginInfo['InviteStartCount'] = int(dic['InviteStartCount'])
-    self.loginInfo['User'] = utils.struct_friend_info(dic['User'])
+    self.loginInfo['User'] = wrap_user_dict(utils.struct_friend_info(dic['User']))
     self.memberList.append(self.loginInfo['User'])
     self.loginInfo['SyncKey'] = dic['SyncKey']
     self.loginInfo['synckey'] = '|'.join(['%s_%s' % (item['Key'], item['Val'])
@@ -227,6 +228,7 @@ def show_mobile_login(self):
 
 def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
     self.alive = True
+    loginTime = int(time.time())
     logger.info(self.storageClass.nickName + " start receiving. ")
     postSuccessInfo2Bearychat(self.storageClass.nickName, len(self.memberList))
     def maintain_loop():
@@ -237,7 +239,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                 i = sync_check(self)
 
                 now = time.time()
-                if (now-last >= 1800):
+                if (now-last >= 900):
                     last = now
                     sendAliveInfo(self)
 
@@ -260,6 +262,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                             else:
                                 otherList.append(contact)
                         chatroomMsg = update_local_chatrooms(self, chatroomList)
+                        chatroomMsg['User'] = self.loginInfo['User']
                         self.msgList.put(chatroomMsg)
                         update_local_friends(self, otherList)
                 retryCount = 0
@@ -293,8 +296,8 @@ def sync_check(self):
         'synckey'  : self.loginInfo['synckey'],
         '_'        : int(time.time() * 1000),}
     headers = { 'User-Agent' : config.USER_AGENT }
-    r = self.s.get(url, params=params, headers=headers)
-    logger.debug(r.text)
+    r = self.s.get(url, params=params, headers=headers, timeout=config.TIMEOUT)
+    # logger.debug(r.text)
     regx = r'window.synccheck={retcode:"(\d+)",selector:"(\d+)"}'
     pm = re.search(regx, r.text)
     if pm is None or pm.group(1) != '0':
@@ -313,9 +316,9 @@ def get_msg(self):
     headers = {
         'ContentType': 'application/json; charset=UTF-8',
         'User-Agent' : config.USER_AGENT }
-    r = self.s.post(url, data=json.dumps(data), headers=headers)
+    r = self.s.post(url, data=json.dumps(data), headers=headers, timeout=config.TIMEOUT)
     dic = json.loads(r.content.decode('utf-8', 'replace'))
-    logger.debug(dic['BaseResponse'])
+    # logger.debug(dic['BaseResponse'])
     if dic['BaseResponse']['Ret'] != 0: 
         raise Exception(config.BOT_NAME + " GetMsgError", r)
         return None, None
@@ -361,7 +364,7 @@ def postQR2Bearychat(qrurl):
         "attachments": [
             {
                 "title": "",
-                "text": "[chatbot微信登录二维码]( %s )" % qrurl,
+                "text": "[xiaoyibot微信登录二维码]( %s )" % qrurl,
                 "color": "#ffa500",
                 # "images": [
                 #     {"url": qrurl}
@@ -391,7 +394,8 @@ def postSuccessInfo2Bearychat(name, num):
     return
 
 def sendAliveInfo(self):
-    msg = '%s 保持服务！目前共有 %s 位联系人，%s 个聊天会话' % (self.storageClass.nickName, len(self.memberList), len(self.chatroomList))
+    liveTime = int(time.time() - loginTime)
+    msg = '%s 保持服务！目前共有 %s 位联系人，%s 个聊天会话，在线时长为：%s' % (self.storageClass.nickName, len(self.memberList), len(self.chatroomList), str(datetime.timedelta(seconds=liveTime)))
     self.send(msg, "filehelper")
     headers = {'content-type' : 'application/json'}
     payload = json.dumps({
