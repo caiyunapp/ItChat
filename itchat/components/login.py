@@ -321,7 +321,7 @@ def get_msg(self):
     # logger.debug(dic['BaseResponse'])
     if dic['BaseResponse']['Ret'] != 0: 
         # raise Exception(config.BOT_NAME + " GetMsgError", r)
-        logger.warning(config.BOT_NAME + " GetMsgError " + dic['BaseResponse'])
+        logger.warning(config.BOT_NAME + " GetMsgError ")
         return None, None
     self.loginInfo['SyncKey'] = dic['SyncCheckKey']
     self.loginInfo['synckey'] = '|'.join(['%s_%s' % (item['Key'], item['Val'])
