@@ -51,6 +51,8 @@ itchat.run()
 
 这是一个基于这一项目的[开源小机器人][robot-source-code]，百闻不如一见，有兴趣可以尝试一下。
 
+由于好友数量实在增长过快，自动通过好友验证的功能演示暂时关闭。
+
 ![QRCode][robot-qr]
 
 ## 截屏
@@ -279,7 +281,7 @@ A: 有些账号是天生无法给自己的账号发送信息的，建议使用`f
 
 或者也可以在gitter上交流：[![Gitter][gitter-picture]][gitter]
 
-当然也可以加入我们新建的QQ群讨论：549762872
+当然也可以加入我们新建的QQ群讨论：549762872, 205872856
 
 [gitter-picture]: https://badges.gitter.im/littlecodersh/ItChat.svg
 [gitter]: https://gitter.im/littlecodersh/ItChat?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge
